@@ -1,0 +1,100 @@
+000B,,,CS BIT P2.0
+000B,,,SCLK BIT P2.1
+000B,,,DOUT BIT P2.3
+,,,
+,,,        ORG 00H
+0000,74 38,,        MOV A,#38H ;INIT. LCD 2 LINES, 5X7 MATRIX
+0002,11 5A,,        ACALL COMNWRT ;call command subroutine
+0004,11 8C,,        ACALL DELAY ;give LCD some time
+0006,74 0C,,        MOV A,#0CH ;display on, cursor on
+0008,11 5A,,        ACALL COMNWRT ;call command subroutine
+000A,11 8C,,        ACALL DELAY ;give LCD some time
+000C,74 01,,        MOV A,#01 ;clear LCD
+000E,11 5A,,        ACALL COMNWRT ;call command subroutine
+0010,,MAIN,MAIN:
+0010,D2 A0,,        SETB CS     ;conversion start
+0012,C2 A1,,        CLR SCLK    ;configure SCLK as output
+0014,D2 A3,,        SETB DOUT   ;configure DOUT as input
+,,,
+0016,C2 A0,,        CLR CS
+0018,D2 A1,,        SETB SCLK ;one cycle skip as 9 pulses to get data out
+001A,11 8C,,        ACALL DELAY
+001C,C2 A1,,        CLR SCLK
+001E,11 8C,,        ACALL DELAY
+0020,7B 08,,        MOV R3,#8D;counter for reading 8 bits from ADC
+,,,
+0022,,READ,READ:
+0022,D2 A1,,        SETB SCLK
+0024,11 8C,,        ACALL DELAY
+0026,C2 A1,,        CLR SCLK
+0028,11 8C,,        ACALL DELAY
+002A,A2 A3,,        MOV C,DOUT
+002C,33,,        RLC A
+002D,DB F3,,        DJNZ R3,READ
+002F,D2 A0,,        SETB CS
+0031,F5 90,,        MOV P1,A
+,,,
+0033,11 8C,,        ACALL DELAY ;give LCD some time
+0035,74 06,,        MOV A,#06H ;shift cursor right
+0037,11 5A,,        ACALL COMNWRT ;call command subroutine
+0039,11 8C,,        ACALL DELAY ;give LCD some time
+003B,74 84,,        MOV A,#84H ;cursor at line 1, pos. 4
+003D,11 5A,,        ACALL COMNWRT ;call command subroutine
+003F,11 8C,,        ACALL DELAY ;give LCD some time
+,,,
+,,,
+0041,11 74,,        ACALL HEX2ASSCI
+0043,ED,,        MOV A,R5
+0044,11 67,,        ACALL DATAWRT ;call display subroutine
+0046,EE,,        MOV A,R6
+0047,11 67,,        ACALL DATAWRT ;call display subroutine
+0049,74 2E,,        MOV A,#'.'
+004B,11 67,,        ACALL DATAWRT ;call display subroutine
+004D,EC,,        MOV A,R4
+004E,11 67,,        ACALL DATAWRT ;call display subroutine
+0050,74 20,,        MOV A,#' '
+0052,11 67,,        ACALL DATAWRT ;call display subroutine
+0054,74 63,,        MOV A,#'c'
+0056,11 67,,        ACALL DATAWRT ;call display subroutine
+,,,
+0058,80 B6,,        SJMP MAIN
+,,,
+005A,,COMNWRT,COMNWRT: ;send command to LCD
+005A,F5 B0,,        MOV P3,A ;copy reg A to port 1
+005C,C2 80,,        CLR P0.0 ;RS=0 for command
+005E,C2 81,,        CLR P0.1 ;R/W=0 for write
+0060,D2 82,,        SETB P0.2 ;E=1 for high pulse
+0062,11 8C,,        ACALL DELAY ;give LCD some time
+0064,C2 82,,        CLR P0.2 ;E=0 for H-to-L pulse
+0066,22,,        RET
+,,,
+0067,,DATAWRT,DATAWRT: ;write data to LCD
+0067,F5 B0,,        MOV P3,A ;copy reg A to port 1
+0069,D2 80,,        SETB P0.0 ;RS=1 for data
+006B,C2 81,,        CLR P0.1 ;R/W=0 for write
+006D,D2 82,,        SETB P0.2 ;E=1 for high pulse
+006F,11 8C,,        ACALL DELAY ;give LCD some time
+0071,C2 82,,        CLR P0.2 ;E=0 for H-to-L pulse
+0073,22,,        RET
+,,,
+0074,,HEX2ASSCI,HEX2ASSCI:
+0074,E5 90,,        MOV A,P1
+0076,75 F0 0A,,        MOV B,#10D
+0079,84,,        DIV AB
+007A,43 F0 30,,        ORL B,#30H
+007D,AE F0,,        MOV R6,B
+007F,75 F0 0A,,        MOV B,#10D
+0082,84,,        DIV AB
+0083,43 F0 30,,        ORL B,#30H
+0086,AD F0,,        MOV R5,B
+0088,44 30,,        ORL A,#30H
+008A,FC,,        MOV R4,A
+008B,22,,        RET
+,,,
+008C,79 32,DELAY,DELAY:  MOV R1,#50D
+008E,7A FA,HERE2,HERE2:  MOV R2,#250D
+0090,DA FE,HERE,HERE:   DJNZ R2,HERE
+0092,D9 FA,,                DJNZ R1,HERE2
+0094,22,,                RET
+,,,
+000E,,,END
